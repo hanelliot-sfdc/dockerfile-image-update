@@ -112,6 +112,14 @@ public class CommandLine {
                 .setDefault(false) //To prevent null from being returned by the argument
                 .required(false)
                 .help("Enable debug logging, including git wire logs.");
+        parser.addArgument("--" + RENOVATE_GITHUB_APP_ID)
+                .type(String.class)
+                .required(false)
+                .help("Github app ID of renovate enterprise");
+        parser.addArgument("--" + RENOVATE_GITHUB_APP_KEY)
+                .type(String.class)
+                .required(false)
+                .help("Path to the Github app key of renovate enterprise");
         return parser;
     }
 
@@ -253,7 +261,7 @@ public class CommandLine {
         logger.setLevel(HttpLoggingInterceptor.Level.HEADERS);
         logger.redactHeader("Authorization");
 
-        builder.withConnector(new OkHttpGitHubConnector(new OkHttpClient.Builder() 
+        builder.withConnector(new OkHttpGitHubConnector(new OkHttpClient.Builder()
             .addInterceptor(logger)
             .build()));
       }
