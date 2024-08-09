@@ -22,37 +22,37 @@ import java.security.spec.PKCS8EncodedKeySpec;
 import java.time.Instant;
 import java.util.Date;
 
-public class RenovateUtil {
-    private static final Logger log = LoggerFactory.getLogger(RenovateUtil.class);
+public class GithubAppCheck {
+    private static final Logger log = LoggerFactory.getLogger(GithubAppCheck.class);
 
-    private static String appId;
-    private static String privateKeyPath;
-    private static String jwt;
-    private static Instant jwtExpiry;
-    private static GitHub gitHub;
+    private final String appId;
+    private final String privateKeyPath;
+    private String jwt;
+    private Instant jwtExpiry;
+    private GitHub gitHub;
 
-    public RenovateUtil(final Namespace ns){
-        this.appId = ns.get(Constants.RENOVATE_GITHUB_APP_ID);
-        this.privateKeyPath = ns.get(Constants.RENOVATE_GITHUB_APP_KEY);
-        jwt = null;
-        jwtExpiry = null;
-        gitHub = null;
+    public GithubAppCheck(final Namespace ns){
+        this.appId = ns.get(Constants.SKIP_GITHUB_APP_ID);
+        this.privateKeyPath = ns.get(Constants.SKIP_GITHUB_APP_KEY);
+        this.jwt = null;
+        this.jwtExpiry = null;
         try {
             generateJWT(this.appId, this.privateKeyPath);
         } catch (GeneralSecurityException | IOException exception) {
             log.warn("Could not initialise JWT due to exception: {}", exception.getMessage());
         }
         try {
-            gitHub = new GitHubBuilder()
+            this.gitHub = new GitHubBuilder()
                     .withEndpoint(CommandLine.gitApiUrl(ns))
                     .withJwtToken(jwt)
                     .build();
         } catch (IOException exception) {
             log.warn("Could not initialise github due to exception: {}", exception.getMessage());
+            this.gitHub = null;
         }
     }
 
-    protected boolean isRenovateEnabledOnRepository(String fullRepoName){
+    protected boolean isGithubAppEnabledOnRepository(String fullRepoName){
         refreshJwtIfNeeded(appId, privateKeyPath);
         try {
             gitHub.getApp().getInstallationByRepository(fullRepoName.split("/")[0], fullRepoName.split("/")[1]);
@@ -68,7 +68,7 @@ public class RenovateUtil {
         }
     }
 
-    private static void refreshJwtIfNeeded(String appId, String privateKeyPath){
+    private void refreshJwtIfNeeded(String appId, String privateKeyPath){
         if (jwt == null || jwtExpiry.isBefore(Instant.now().minusSeconds(60))) {  // Adding a buffer to ensure token validity
             try {
                 generateJWT(appId, privateKeyPath);
@@ -78,7 +78,7 @@ public class RenovateUtil {
         }
     }
 
-    private static void generateJWT(String appId, String privateKeyPath) throws IOException, GeneralSecurityException {
+    private void generateJWT(String appId, String privateKeyPath) throws IOException, GeneralSecurityException {
         Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
         RSAPrivateKey privateKey = getRSAPrivateKey(privateKeyPath);
 
@@ -92,7 +92,7 @@ public class RenovateUtil {
         jwtExpiry = now.plusSeconds(600);
     }
 
-    private static RSAPrivateKey getRSAPrivateKey(String privateKeyPath) throws IOException, GeneralSecurityException {
+    private RSAPrivateKey getRSAPrivateKey(String privateKeyPath) throws IOException, GeneralSecurityException {
         try (PemReader pemReader = new PemReader(new FileReader(new File(privateKeyPath)))) {
             PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(pemReader.readPemObject().getContent());
             KeyFactory keyFactory = KeyFactory.getInstance("RSA");

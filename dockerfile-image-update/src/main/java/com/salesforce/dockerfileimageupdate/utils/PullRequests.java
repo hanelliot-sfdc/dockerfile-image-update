@@ -25,7 +25,7 @@ public class PullRequests {
                 pullRequestSender.forkRepositoriesFoundAndGetPathToDockerfiles(contentsFoundWithImage, gitForkBranch);
         List<IOException> exceptions = new ArrayList<>();
         List<String> skippedRepos = new ArrayList<>();
-        RenovateUtil renovateUtil = new RenovateUtil(ns);
+        GithubAppCheck githubAppCheck = new GithubAppCheck(ns);
         for (String currUserRepo : pathToDockerfilesInParentRepo.keySet()) {
             Optional<GitHubContentToProcess> forkWithContentPaths =
                     pathToDockerfilesInParentRepo.get(currUserRepo).stream().findFirst();
@@ -33,7 +33,7 @@ public class PullRequests {
                 try {
                     //If the repository has been onboarded to renovate enterprise, skip sending the DFIU PR
                     if(ns.getBoolean(Constants.CHECK_FOR_RENOVATE)
-                            && (renovateUtil.isRenovateEnabledOnRepository(forkWithContentPaths.get().getParent().getFullName()))) {
+                            && (githubAppCheck.isGithubAppEnabledOnRepository(forkWithContentPaths.get().getParent().getFullName()))) {
                         log.info("The repo {} is onboarded onto Renovate.Hence, skip sending DFIU PRs to this repository.", forkWithContentPaths.get().getParent().getFullName());
                     } else {
                         dockerfileGitHubUtil.changeDockerfiles(ns,
