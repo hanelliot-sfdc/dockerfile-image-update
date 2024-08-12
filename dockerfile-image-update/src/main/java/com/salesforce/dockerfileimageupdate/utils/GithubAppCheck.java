@@ -36,22 +36,32 @@ public class GithubAppCheck {
         this.privateKeyPath = ns.get(Constants.SKIP_GITHUB_APP_KEY);
         this.jwt = null;
         this.jwtExpiry = null;
-        try {
-            generateJWT(this.appId, this.privateKeyPath);
-        } catch (GeneralSecurityException | IOException exception) {
-            log.warn("Could not initialise JWT due to exception: {}", exception.getMessage());
+        this.gitHub = null;
+        if (this.appId != null && this.privateKeyPath != null) {
+            try {
+                generateJWT(this.appId, this.privateKeyPath);
+            } catch (GeneralSecurityException | IOException exception) {
+                log.warn("Could not initialise JWT due to exception: {}", exception.getMessage());
+            }
+            try {
+                this.gitHub = new GitHubBuilder()
+                        .withEndpoint(CommandLine.gitApiUrl(ns))
+                        .withJwtToken(jwt)
+                        .build();
+            } catch (IOException exception) {
+                log.warn("Could not initialise github due to exception: {}", exception.getMessage());
+            }
         }
-        try {
-            this.gitHub = new GitHubBuilder()
-                    .withEndpoint(CommandLine.gitApiUrl(ns))
-                    .withJwtToken(jwt)
-                    .build();
-        } catch (IOException exception) {
-            log.warn("Could not initialise github due to exception: {}", exception.getMessage());
-            this.gitHub = null;
+        else {
+            log.warn("Could not find any Github app ID and Github app Key in the declared list. Hence assuming this class is no longer needed");
         }
     }
 
+    /**
+     * Method to verify whether the github app is installed on a repository or not. 
+     * @param fullRepoName = The repository full name, i.e, of the format "owner/repoName". Eg: "Salesforce/dockerfile-image-update"
+     * @return True if github app is installed, false otherwise. 
+     */
     protected boolean isGithubAppEnabledOnRepository(String fullRepoName){
         refreshJwtIfNeeded(appId, privateKeyPath);
         try {
@@ -59,15 +69,22 @@ public class GithubAppCheck {
             return true;
         } catch (HttpException exception) {
             if (exception.getResponseCode() != 404) {
+                // Log for any HTTP status code other than 404 Not found. 
                 log.warn("Caught a HTTPException {} while trying to get app installation. Defaulting to False", exception.getMessage());
             }
             return false;
         } catch (IOException exception) {
+            // Most often happens on timeout scenarios. 
             log.warn("Caught a IOException {} while trying to get app installation. Defaulting to False", exception.getMessage());
             return false;
         }
     }
 
+    /**
+     * Method to refresh the JWT token if needed. Checks the JWT expiry time, and if it is 60s away from expiring, refreshes it. 
+     * @param appId = The id of the Github App to generate the JWT for
+     * @param privateKeyPath = The path to the private key of the Github App to generate the JWT for
+     */
     private void refreshJwtIfNeeded(String appId, String privateKeyPath){
         if (jwt == null || jwtExpiry.isBefore(Instant.now().minusSeconds(60))) {  // Adding a buffer to ensure token validity
             try {
@@ -78,6 +95,14 @@ public class GithubAppCheck {
         }
     }
 
+    /**
+     * Method to generate the JWT used to access the Github App APIs. We generate the JWT to be valid for 600 seconds. 
+     * Along with the JWT value, the jwtExpiry value is set to the time of 600 sec from now. 
+     * @param appId = The id of the Github App to generate the JWT for
+     * @param privateKeyPath = The path to the private key of the Github App to generate the JWT for
+     * @throws IOException
+     * @throws GeneralSecurityException
+     */
     private void generateJWT(String appId, String privateKeyPath) throws IOException, GeneralSecurityException {
         Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
         RSAPrivateKey privateKey = getRSAPrivateKey(privateKeyPath);
@@ -92,6 +117,13 @@ public class GithubAppCheck {
         jwtExpiry = now.plusSeconds(600);
     }
 
+    /**
+     * The method to get the private key in an RSA Encoded format. Makes use of org.bouncycastle.util
+     * @param privateKeyPath
+     * @return
+     * @throws IOException
+     * @throws GeneralSecurityException
+     */
     private RSAPrivateKey getRSAPrivateKey(String privateKeyPath) throws IOException, GeneralSecurityException {
         try (PemReader pemReader = new PemReader(new FileReader(new File(privateKeyPath)))) {
             PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(pemReader.readPemObject().getContent());
@@ -99,5 +131,4 @@ public class GithubAppCheck {
             return (RSAPrivateKey) keyFactory.generatePrivate(spec);
         }
     }
-
 }
