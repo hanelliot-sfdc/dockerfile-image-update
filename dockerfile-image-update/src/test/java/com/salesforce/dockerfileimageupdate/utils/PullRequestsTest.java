@@ -17,35 +17,35 @@ import static org.mockito.Mockito.*;
 import static org.testng.Assert.assertThrows;
 
 public class PullRequestsTest {
-//    @Test
-//    public void testPullRequestsPrepareToCreateSuccessful() throws Exception {
-//        Map<String, Object> nsMap = ImmutableMap.of(Constants.IMG,
-//                "image", Constants.TAG,
-//                "tag", Constants.STORE,
-//                "store", Constants.SKIP_PR_CREATION,
-//                false, Constants.CHECK_FOR_RENOVATE, false);
-//        Namespace ns = new Namespace(nsMap);
-//        PullRequests pullRequests = new PullRequests();
-//        GitHubPullRequestSender pullRequestSender = mock(GitHubPullRequestSender.class);
-//        PagedSearchIterable<GHContent> contentsFoundWithImage = mock(PagedSearchIterable.class);
-//        GitForkBranch gitForkBranch = mock(GitForkBranch.class);
-//        DockerfileGitHubUtil dockerfileGitHubUtil = mock(DockerfileGitHubUtil.class);
-//        RateLimiter rateLimiter = Mockito.spy(new RateLimiter());
-//        Multimap<String, GitHubContentToProcess> pathToDockerfilesInParentRepo = ArrayListMultimap.create();
-//        GitHubContentToProcess gitHubContentToProcess = mock(GitHubContentToProcess.class);
-//        pathToDockerfilesInParentRepo.put("repo1", gitHubContentToProcess);
-//        pathToDockerfilesInParentRepo.put("repo2", gitHubContentToProcess);
-//        when(pullRequestSender.forkRepositoriesFoundAndGetPathToDockerfiles(contentsFoundWithImage, gitForkBranch)).thenReturn(pathToDockerfilesInParentRepo);
-//
-//
-//        pullRequests.prepareToCreate(ns, pullRequestSender, contentsFoundWithImage,
-//                gitForkBranch, dockerfileGitHubUtil, rateLimiter);
-//
-//        verify(dockerfileGitHubUtil, times(2)).changeDockerfiles(eq(ns),
-//                eq(pathToDockerfilesInParentRepo),
-//                eq(gitHubContentToProcess), anyList(), eq(gitForkBranch),
-//                eq(rateLimiter));
-//    }
+   @Test
+   public void testPullRequestsPrepareToCreateSuccessful() throws Exception {
+       Map<String, Object> nsMap = ImmutableMap.of(Constants.IMG,
+               "image", Constants.TAG,
+               "tag", Constants.STORE,
+               "store", Constants.SKIP_PR_CREATION,
+               false, Constants.CHECK_FOR_RENOVATE, false);
+       Namespace ns = new Namespace(nsMap);
+       PullRequests pullRequests = new PullRequests();
+       GitHubPullRequestSender pullRequestSender = mock(GitHubPullRequestSender.class);
+       PagedSearchIterable<GHContent> contentsFoundWithImage = mock(PagedSearchIterable.class);
+       GitForkBranch gitForkBranch = mock(GitForkBranch.class);
+       DockerfileGitHubUtil dockerfileGitHubUtil = mock(DockerfileGitHubUtil.class);
+       GithubAppCheck githubAppCheck = mock(GithubAppCheck.class);
+       RateLimiter rateLimiter = Mockito.spy(new RateLimiter());
+       Multimap<String, GitHubContentToProcess> pathToDockerfilesInParentRepo = ArrayListMultimap.create();
+       GitHubContentToProcess gitHubContentToProcess = mock(GitHubContentToProcess.class);
+       pathToDockerfilesInParentRepo.put("repo1", gitHubContentToProcess);
+       pathToDockerfilesInParentRepo.put("repo2", gitHubContentToProcess);
+       when(pullRequestSender.forkRepositoriesFoundAndGetPathToDockerfiles(contentsFoundWithImage, gitForkBranch)).thenReturn(pathToDockerfilesInParentRepo);
+
+       pullRequests.prepareToCreate(ns, pullRequestSender, contentsFoundWithImage,
+               gitForkBranch, dockerfileGitHubUtil, rateLimiter);
+
+       verify(dockerfileGitHubUtil, times(2)).changeDockerfiles(eq(ns),
+               eq(pathToDockerfilesInParentRepo),
+               eq(gitHubContentToProcess), anyList(), eq(gitForkBranch),
+               eq(rateLimiter));
+   }
 
 //    @Test(expectedExceptions = IOException.class)
 //    public void testPullRequestsPrepareThrowsException() throws Exception {
