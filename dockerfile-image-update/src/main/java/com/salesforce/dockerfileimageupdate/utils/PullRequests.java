@@ -34,12 +34,14 @@ public class PullRequests {
                     //If the repository has been onboarded to renovate enterprise, skip sending the DFIU PR
                     if(ns.getBoolean(Constants.CHECK_FOR_RENOVATE)
                             && (githubAppCheck.isGithubAppEnabledOnRepository(forkWithContentPaths.get().getParent().getFullName()))) {
-                        log.info("The repo {} is onboarded onto Renovate.Hence, skip sending DFIU PRs to this repository.", forkWithContentPaths.get().getParent().getFullName());
+                        log.info("The repo {} is onboarded onto Renovate. Hence, skip sending DFIU PRs to this repository.", forkWithContentPaths.get().getParent().getFullName());
+                        continue;
                     } else {
                         dockerfileGitHubUtil.changeDockerfiles(ns,
                                 pathToDockerfilesInParentRepo,
                                 forkWithContentPaths.get(), skippedRepos,
                                 gitForkBranch, rateLimiter);
+                        continue;
                     }
                 } catch (IOException | InterruptedException e) {
                     log.error(String.format("Error changing Dockerfile for %s", forkWithContentPaths.get().getParent().getFullName()), e);

@@ -115,55 +115,39 @@ public class PullRequestsTest {
                eq(gitHubContentToProcess), anyList(), eq(gitForkBranch),eq(rateLimiter));
    }
 
-//    @Test
-//    public void testPullRequestsPrepareSkipsSendingPRIfRepoOnboardedToRenovate() throws Exception {
-//        Map<String, Object> nsMap = ImmutableMap.of(
-//                Constants.IMG, "image",
-//                Constants.TAG, "tag",
-//                Constants.STORE,"store",
-//                Constants.SKIP_PR_CREATION,false,
-//                Constants.CHECK_FOR_RENOVATE, false);
-//
-//
-//        Namespace ns = new Namespace(nsMap);
-//        PullRequests pullRequests = new PullRequests();
-//        GitHubPullRequestSender pullRequestSender = mock(GitHubPullRequestSender.class);
-//        PagedSearchIterable<GHContent> contentsFoundWithImage = mock(PagedSearchIterable.class);
-//        GitForkBranch gitForkBranch = mock(GitForkBranch.class);
-//        DockerfileGitHubUtil dockerfileGitHubUtil = mock(DockerfileGitHubUtil.class);
-//        RenovateUtil renovateUtil = mock(RenovateUtil.class);
-//        RateLimiter rateLimiter = Mockito.spy(new RateLimiter());
-//        Multimap<String, GitHubContentToProcess> pathToDockerfilesInParentRepo = ArrayListMultimap.create();
-//        GitHubContentToProcess gitHubContentToProcess = mock(GitHubContentToProcess.class);
-//        pathToDockerfilesInParentRepo.put("repo1", gitHubContentToProcess);
-//        pathToDockerfilesInParentRepo.put("repo2", gitHubContentToProcess);
-//        pathToDockerfilesInParentRepo.put("repo3", gitHubContentToProcess);
-//        GHContent content = mock(GHContent.class);
-//        InputStream inputStream1 = new ByteArrayInputStream("{someKey:someValue}".getBytes());
-//        InputStream inputStream2 = new ByteArrayInputStream("{enabled:false}".getBytes());
-//        GHRepository ghRepository = mock(GHRepository.class);
-//
-//        when(pullRequestSender.forkRepositoriesFoundAndGetPathToDockerfiles(contentsFoundWithImage, gitForkBranch)).thenReturn(pathToDockerfilesInParentRepo);
-//        when(gitHubContentToProcess.getParent()).thenReturn(ghRepository);
-//        //Fetch the content of the renovate.json file for the 3 repos.
-//        // The first one returns a file with regular json content.
-//        // The second one returns a file with the key 'enabled' set to 'false' to replicate a repo that has been onboarded to renovate but has it disabled
-//        // The third repo does not have the renovate.json file
-////        when(ghRepository.getFileContent(anyString())).thenReturn(content).thenReturn(content).thenThrow(new FileNotFoundException());
-////        when(ghRepository.getFullName()).thenReturn("org/repo");
-////        when(content.read()).thenReturn(inputStream1).thenReturn(inputStream2);
-//
-//        when(renovateUtil.isRenovateEnabledOnRepository(anyString())).thenReturn(true).thenReturn(false).thenReturn(false);
-//
-//        pullRequests.prepareToCreate(ns, pullRequestSender, contentsFoundWithImage,
-//                gitForkBranch, dockerfileGitHubUtil, rateLimiter);
-//
-//        //Verify that the DFIU PR is skipped for the first repo, but is sent to the other two repos
-//        verify(dockerfileGitHubUtil, times(2)).changeDockerfiles(eq(ns),
-//                eq(pathToDockerfilesInParentRepo),
-//                eq(gitHubContentToProcess), anyList(), eq(gitForkBranch),
-//                eq(rateLimiter));
-//    }
+    // @Test
+    // public void testPullRequestsPrepareSkipsSendingPRIfRepoOnboardedToRenovate() throws Exception {
+    //     Map<String, Object> nsMap = ImmutableMap.of(Constants.IMG,
+    //         "image", Constants.TAG,
+    //         "tag", Constants.STORE,
+    //         "store", Constants.SKIP_PR_CREATION,
+    //         false, Constants.CHECK_FOR_RENOVATE, true);
+    //     Namespace ns = new Namespace(nsMap);
+    //     PullRequests pullRequests = new PullRequests();
+    //     GitHubPullRequestSender pullRequestSender = mock(GitHubPullRequestSender.class);
+    //     PagedSearchIterable<GHContent> contentsFoundWithImage = mock(PagedSearchIterable.class);
+    //     GitForkBranch gitForkBranch = mock(GitForkBranch.class);
+    //     DockerfileGitHubUtil dockerfileGitHubUtil = mock(DockerfileGitHubUtil.class);
+    //     GithubAppCheck githubAppCheck = mock(GithubAppCheck.class);
+    //     RateLimiter rateLimiter = Mockito.spy(new RateLimiter());
+    //     Multimap<String, GitHubContentToProcess> pathToDockerfilesInParentRepo = ArrayListMultimap.create();
+    //     GitHubContentToProcess gitHubContentToProcess = mock(GitHubContentToProcess.class);
+    //     GHRepository ghRepository = mock(GHRepository.class);
+    //     pathToDockerfilesInParentRepo.put("repo1", gitHubContentToProcess);
+
+    //     when(pullRequestSender.forkRepositoriesFoundAndGetPathToDockerfiles(contentsFoundWithImage, gitForkBranch)).thenReturn(pathToDockerfilesInParentRepo);
+    //     when(gitHubContentToProcess.getParent()).thenReturn(ghRepository);
+    //     when(ghRepository.getFullName()).thenReturn("repo");
+    //     when(githubAppCheck.isGithubAppEnabledOnRepository(anyString())).thenReturn(true);
+
+    //     pullRequests.prepareToCreate(ns, pullRequestSender, contentsFoundWithImage,
+    //             gitForkBranch, dockerfileGitHubUtil, rateLimiter);
+
+    //     verify(dockerfileGitHubUtil, times(0)).changeDockerfiles(eq(ns),
+    //             eq(pathToDockerfilesInParentRepo),
+    //             eq(gitHubContentToProcess), anyList(), eq(gitForkBranch),
+    //             eq(rateLimiter));
+    // }
 
     @Test
     public void testisRenovateEnabledReturnsFalseIfRenovateConfigFileNotFound() throws IOException {
