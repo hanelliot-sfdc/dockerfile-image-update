@@ -62,7 +62,7 @@ public class GithubAppCheck {
      * @param fullRepoName = The repository full name, i.e, of the format "owner/repoName". Eg: "Salesforce/dockerfile-image-update"
      * @return True if github app is installed, false otherwise. 
      */
-    protected boolean isGithubAppEnabledOnRepository(String fullRepoName){
+    protected boolean isGithubAppEnabledOnRepository(String fullRepoName) {
         refreshJwtIfNeeded(appId, privateKeyPath);
         try {
             gitHub.getApp().getInstallationByRepository(fullRepoName.split("/")[0], fullRepoName.split("/")[1]);
@@ -85,7 +85,7 @@ public class GithubAppCheck {
      * @param appId = The id of the Github App to generate the JWT for
      * @param privateKeyPath = The path to the private key of the Github App to generate the JWT for
      */
-    private void refreshJwtIfNeeded(String appId, String privateKeyPath){
+    private void refreshJwtIfNeeded(String appId, String privateKeyPath) {
         if (jwt == null || jwtExpiry.isBefore(Instant.now().minusSeconds(60))) {  // Adding a buffer to ensure token validity
             try {
                 generateJWT(appId, privateKeyPath);
