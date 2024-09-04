@@ -22,11 +22,20 @@ import java.security.spec.PKCS8EncodedKeySpec;
 import java.time.Instant;
 import java.util.Date;
 
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.Scanner;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+
+
 public class GithubAppCheck {
     private static final Logger log = LoggerFactory.getLogger(GithubAppCheck.class);
 
     private final String appId;
     private final String privateKeyPath;
+    private final String githubAppApiToken;
     private String jwt;
     private Instant jwtExpiry;
     private GitHub gitHub;
@@ -34,6 +43,7 @@ public class GithubAppCheck {
     public GithubAppCheck(final Namespace ns){
         this.appId = ns.get(Constants.SKIP_GITHUB_APP_ID);
         this.privateKeyPath = ns.get(Constants.SKIP_GITHUB_APP_KEY);
+        this.githubAppApiToken = ns.get(Constants.GITHUB_APP_API_TOKEN);
         this.jwt = null;
         this.jwtExpiry = null;
         this.gitHub = null;
@@ -108,7 +118,42 @@ public class GithubAppCheck {
      * Reference: https://github.com/mend/renovate-ce-ee/blob/main/docs/reporting-apis.md#repo-info
      */
     protected boolean isGithubAppEnabledOnRepositoryWithRenovateApi(String fullRepoName) {
-        return true;
+        try {
+            String apiEndpoint = "https://scot-mend-renovate072.sfproxy.buildndeliver.aws-esvc1-useast2.aws.sfdc.cl/api/job/repos/%s";
+            URL url = new URL(String.format(apiEndpoint, fullRepoName));
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            conn.setRequestProperty("Accept", "application/json");
+            conn.setRequestProperty("authorization", "Bearer " + githubAppApiToken);
+            conn.connect();
+            
+            Integer responseCode = conn.getResponseCode();
+            if (responseCode != 200) {
+                throw new RuntimeException("HttpResponseCode: " + responseCode);
+            } else {
+                String inline = "";
+                Scanner scanner = new Scanner(url.openStream());
+                while (scanner.hasNext()) {
+                    inline += scanner.nextLine();
+                }
+                scanner.close();
+
+                //Using the JSON simple library parse the string into a json object
+                JSONParser parse = new JSONParser();
+                JSONObject dataObject = (JSONObject) parse.parse(inline);
+                String appInstallationState = (String) dataObject.get("state");
+                String appActivationStatus = (String) dataObject.get("status");
+
+                // Return app installation and activation status
+                if (appInstallationState == "installed" && appActivationStatus == "activated") {
+                    return true;
+                }
+                return false;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
     }
 
 
