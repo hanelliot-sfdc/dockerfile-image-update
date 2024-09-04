@@ -63,6 +63,27 @@ public class GithubAppCheck {
      * @return True if github app is installed, false otherwise. 
      */
     protected boolean isGithubAppEnabledOnRepository(String fullRepoName) {
+        Integer maxRetryCount = 5;
+        Boolean isGithubAppInstalled = isGithubAppEnabledOnRepositoryWithGitApi(fullRepoName);
+        if (!isGithubAppInstalled) {
+            for (Integer i = 0; i < maxRetryCount; i++) {
+                isGithubAppInstalled = isGithubAppEnabledOnRepositoryWithGitApi(fullRepoName);
+                if (isGithubAppInstalled) break;
+            }
+        }
+        if (!isGithubAppInstalled) {
+            isGithubAppInstalled = isGithubAppEnabledOnRepositoryWithRenovateApi(fullRepoName);
+        }
+        return isGithubAppInstalled;
+    }
+
+    /**
+     * Method to verify whether the github app is installed on a repository or not, using Git API
+     * @param fullRepoName = The repository full name, i.e, of the format "owner/repoName". Eg: "Salesforce/dockerfile-image-update"
+     * @return True if github app is installed, false otherwise. 
+     * Reference: https://docs.github.com/en/rest/apps/apps?apiVersion=2022-11-28#get-a-repository-installation-for-the-authenticated-app
+     */
+    protected boolean isGithubAppEnabledOnRepositoryWithGitApi(String fullRepoName) {
         refreshJwtIfNeeded(appId, privateKeyPath);
         try {
             gitHub.getApp().getInstallationByRepository(fullRepoName.split("/")[0], fullRepoName.split("/")[1]);
@@ -79,6 +100,17 @@ public class GithubAppCheck {
             return false;
         }
     }
+
+    /**
+     * Method to verify whether the github app is installed on a repository or not, using Renovate API
+     * @param fullRepoName = The repository full name, i.e, of the format "owner/repoName". Eg: "Salesforce/dockerfile-image-update"
+     * @return True if github app is installed, false otherwise. 
+     * Reference: https://github.com/mend/renovate-ce-ee/blob/main/docs/reporting-apis.md#repo-info
+     */
+    protected boolean isGithubAppEnabledOnRepositoryWithRenovateApi(String fullRepoName) {
+        return true;
+    }
+
 
     /**
      * Method to refresh the JWT token if needed. Checks the JWT expiry time, and if it is 60s away from expiring, refreshes it. 
