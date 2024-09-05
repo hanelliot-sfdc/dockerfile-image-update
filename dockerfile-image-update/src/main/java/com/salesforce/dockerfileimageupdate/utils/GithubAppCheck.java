@@ -35,7 +35,7 @@ public class GithubAppCheck {
 
     private final String appId;
     private final String privateKeyPath;
-    private final String githubAppApiToken;
+    private final String appApiToken;
     private String jwt;
     private Instant jwtExpiry;
     private GitHub gitHub;
@@ -43,7 +43,7 @@ public class GithubAppCheck {
     public GithubAppCheck(final Namespace ns){
         this.appId = ns.get(Constants.SKIP_GITHUB_APP_ID);
         this.privateKeyPath = ns.get(Constants.SKIP_GITHUB_APP_KEY);
-        this.githubAppApiToken = ns.get(Constants.GITHUB_APP_API_TOKEN);
+        this.appApiToken = ns.get(Constants.SKIP_GITHUB_APP_API_TOKEN);
         this.jwt = null;
         this.jwtExpiry = null;
         this.gitHub = null;
@@ -124,7 +124,7 @@ public class GithubAppCheck {
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
             conn.setRequestProperty("Accept", "application/json");
-            conn.setRequestProperty("authorization", "Bearer " + githubAppApiToken);
+            conn.setRequestProperty("authorization", "Bearer " + appApiToken);
             conn.connect();
             
             Integer responseCode = conn.getResponseCode();

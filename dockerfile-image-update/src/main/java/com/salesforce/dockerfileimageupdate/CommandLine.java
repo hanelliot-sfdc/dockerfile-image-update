@@ -120,7 +120,7 @@ public class CommandLine {
                 .type(String.class)
                 .required(false)
                 .help("Path to the Github app key of the Github App upon whose presence we skip sending the DFIU PR.");
-        parser.addArgument("--" + GITHUB_APP_API_TOKEN)
+        parser.addArgument("--" + SKIP_GITHUB_APP_API_TOKEN)
                 .type(String.class)
                 .required(false)
                 .help("Token for the Github App's API calls to check if the app is already installed");
