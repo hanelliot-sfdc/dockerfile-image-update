@@ -35,7 +35,8 @@ public class GithubAppCheck {
 
     private final String appId;
     private final String privateKeyPath;
-    private final String appApiToken;
+    private final String appServerApiToken;
+    private final String appServerApiEndpoint;
     private String jwt;
     private Instant jwtExpiry;
     private GitHub gitHub;
@@ -43,7 +44,8 @@ public class GithubAppCheck {
     public GithubAppCheck(final Namespace ns){
         this.appId = ns.get(Constants.SKIP_GITHUB_APP_ID);
         this.privateKeyPath = ns.get(Constants.SKIP_GITHUB_APP_KEY);
-        this.appApiToken = ns.get(Constants.SKIP_GITHUB_APP_API_TOKEN);
+        this.appServerApiToken = ns.get(Constants.SKIP_GITHUB_APP_SERVER_API_TOKEN);
+        this.appServerApiEndpoint = ns.get(Constants.SKIP_GITHUB_APP_SERVER_API_ENDPOINT);
         this.jwt = null;
         this.jwtExpiry = null;
         this.gitHub = null;
@@ -119,12 +121,12 @@ public class GithubAppCheck {
      */
     protected boolean isGithubAppEnabledOnRepositoryWithRenovateApi(String fullRepoName) {
         try {
-            String apiEndpoint = "https://scot-mend-renovate072.sfproxy.buildndeliver.aws-esvc1-useast2.aws.sfdc.cl/api/job/repos/%s";
-            URL url = new URL(String.format(apiEndpoint, fullRepoName));
+            String apiEndpoint = appServerApiEndpoint + "/api/repos/" + fullRepoName;
+            URL url = new URL(apiEndpoint);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
             conn.setRequestProperty("Accept", "application/json");
-            conn.setRequestProperty("authorization", "Bearer " + appApiToken);
+            conn.setRequestProperty("authorization", "Bearer " + appServerApiToken);
             conn.connect();
             
             Integer responseCode = conn.getResponseCode();
