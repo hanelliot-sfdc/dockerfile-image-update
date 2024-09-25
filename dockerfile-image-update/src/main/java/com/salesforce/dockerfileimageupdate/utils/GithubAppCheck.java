@@ -47,6 +47,7 @@ public class GithubAppCheck {
     private String jwt;
     private Instant jwtExpiry;
     private GitHub gitHub;
+    private CloseableHttpClient httpClient = HttpClients.createDefault();
 
     public GithubAppCheck(final Namespace ns){
         this.appId = ns.get(Constants.SKIP_GITHUB_APP_ID);
@@ -103,24 +104,18 @@ public class GithubAppCheck {
      */
     protected boolean isGithubAppEnabledOnRepositoryWithGitApi(String fullRepoName) {
         refreshJwtIfNeeded(appId, privateKeyPath);
-        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
+        try {
             String apiEndpoint = "https://git.soma.salesforce.com/api/v3/repos/" + fullRepoName + "/installation";
             HttpGet httpGet = new HttpGet(apiEndpoint);
             httpGet.setHeader("Authorization", jwt);
             httpGet.setHeader("Accept", "application/vnd.github+json");
-
             HttpResponse response = httpClient.execute(httpGet);
             int statusCode = response.getStatusLine().getStatusCode();
-            if (statusCode == 200) {
-                return true;
-            } else if (statusCode == 404) {
-                return false;
-            } else {
-                log.warn("[isGithubAppEnabledOnRepositoryWithGitApi] -- Unexpected response code `{}` while trying to get app installation. Defaulting to False.", statusCode);
-                return false;
-            }
+            log.warn("[isGithubAppEnabledOnRepositoryWithGitApi] -- Response code `{}` while trying to get app installation using Git API", statusCode);
+            return statusCode == 200;
         } catch (IOException exception) {
-            log.warn("[isGithubAppEnabledOnRepositoryWithGitApi] -- Caught a IOException {} while trying to get app installation. Defaulting to False", exception.getMessage());
+            log.warn("[isGithubAppEnabledOnRepositoryWithGitApi] -- Caught a IOException while trying to get app installation on repo {}. Defaulting to False", fullRepoName);
+            exception.printStackTrace();
             return false;
         }
     }
@@ -132,24 +127,18 @@ public class GithubAppCheck {
      * Reference: https://github.com/mend/renovate-ce-ee/blob/main/docs/reporting-apis.md#repo-info
      */
     protected boolean isGithubAppEnabledOnRepositoryWithRenovateApi(String fullRepoName) {
-        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
+        try {
             String apiEndpoint = appServerApiEndpoint + "/api/repos/" + fullRepoName;
             HttpGet httpGet = new HttpGet(apiEndpoint);
             httpGet.setHeader("Authorization", appServerApiToken);
             httpGet.setHeader("Accept", "application/json");
-
             HttpResponse response = httpClient.execute(httpGet);
             int statusCode = response.getStatusLine().getStatusCode();
-            if (statusCode == 200) {
-                return true;
-            } else if (statusCode == 404) {
-                return false;
-            } else {
-                log.warn("[isGithubAppEnabledOnRepositoryWithRenovateApi] -- Unexpected response code `{}` while trying to get app installation. Defaulting to False.", statusCode);
-                return false;
-            }
+            log.warn("[isGithubAppEnabledOnRepositoryWithRenovateApi] -- Response code `{}` while trying to get app installation by Renovate API", statusCode);
+            return statusCode == 200;
         } catch (IOException exception) {
-            log.warn("[isGithubAppEnabledOnRepositoryWithRenovateApi] -- Caught a IOException {} while trying to get app installation. Defaulting to False", exception.getMessage());
+            log.warn("[isGithubAppEnabledOnRepositoryWithRenovateApi] -- Caught a IOException while trying to get app installation on repo {}. Defaulting to False", fullRepoName);
+            exception.printStackTrace();
             return false;
         }
     }
