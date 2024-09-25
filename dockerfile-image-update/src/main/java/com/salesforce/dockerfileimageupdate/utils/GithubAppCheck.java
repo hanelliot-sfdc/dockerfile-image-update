@@ -14,6 +14,8 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.security.GeneralSecurityException;
 import java.security.KeyFactory;
 import java.security.Security;
@@ -24,10 +26,8 @@ import java.util.Date;
 
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.URLConnection;
 import java.util.Scanner;
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
 
 
 public class GithubAppCheck {
@@ -76,11 +76,13 @@ public class GithubAppCheck {
      */
     protected boolean isGithubAppEnabledOnRepository(String fullRepoName) {
         Integer maxRetryCount = 5;
-        Boolean isGithubAppInstalled = isGithubAppEnabledOnRepositoryWithGitApi(fullRepoName);
+        Boolean isGithubAppInstalled = false;
         if (!isGithubAppInstalled) {
             for (Integer i = 0; i < maxRetryCount; i++) {
                 isGithubAppInstalled = isGithubAppEnabledOnRepositoryWithGitApi(fullRepoName);
-                if (isGithubAppInstalled) break;
+                if (isGithubAppInstalled) {
+                    return isGithubAppInstalled;
+                }
             }
         }
         if (!isGithubAppInstalled) {
@@ -103,7 +105,7 @@ public class GithubAppCheck {
         } catch (HttpException exception) {
             if (exception.getResponseCode() != 404) {
                 // Log for any HTTP status code other than 404 Not found. 
-                log.warn("Caught a HTTPException {} while trying to get app installation. Defaulting to False", exception.getMessage());
+                log.warn("Caught a HTTPException `{}` while trying to get app installation. Defaulting to False. Status code: {}", exception.getMessage(), exception.getResponseCode());
             }
             return false;
         } catch (IOException exception) {
@@ -126,30 +128,32 @@ public class GithubAppCheck {
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
             conn.setRequestProperty("Accept", "application/json");
-            conn.setRequestProperty("authorization", "Bearer " + appServerApiToken);
+            conn.setRequestProperty("Authorization", appServerApiToken);
             conn.connect();
+
+            log.info("HTTPS Response Code: " + conn.getResponseCode());
+            log.info("HTTPS Response Message: " + conn.getResponseMessage());
             
-            Integer responseCode = conn.getResponseCode();
-            if (responseCode != 200) {
-                throw new RuntimeException("HttpResponseCode: " + responseCode);
-            } else {
-                String inline = "";
-                Scanner scanner = new Scanner(url.openStream());
-                while (scanner.hasNext()) {
-                    inline += scanner.nextLine();
+            if (conn.getResponseCode() == HttpURLConnection.HTTP_OK) {
+                BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                String inputLine;
+                StringBuilder response = new StringBuilder();
+
+                while ((inputLine = in.readLine()) != null) {
+                    response.append(inputLine);
                 }
-                scanner.close();
+                in.close();
 
-                //Using the JSON simple library parse the string into a json object
-                JSONParser parse = new JSONParser();
-                JSONObject dataObject = (JSONObject) parse.parse(inline);
-                String appInstallationState = (String) dataObject.get("state");
-                String appActivationStatus = (String) dataObject.get("status");
-
-                // Return app installation and activation status
-                if (appInstallationState == "installed" && appActivationStatus == "activated") {
+                if (response.toString().contains("installed")) {
                     return true;
+                } else {
+                    return false;
                 }
+            } else if (conn.getResponseCode() == HttpURLConnection.HTTP_NOT_FOUND) {
+                System.out.println("Repository not found");
+                return false;
+            } else {
+                System.out.println("GET request failed with response code: " + conn.getResponseCode());
                 return false;
             }
         } catch (Exception e) {
