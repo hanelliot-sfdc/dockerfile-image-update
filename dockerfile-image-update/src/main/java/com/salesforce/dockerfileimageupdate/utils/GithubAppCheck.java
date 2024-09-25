@@ -29,6 +29,11 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.util.Scanner;
 
+import io.github.resilience4j.retry.Retry;
+import io.github.resilience4j.retry.RetryConfig;
+import io.vavr.control.Try;
+import java.time.Duration;
+
 
 public class GithubAppCheck {
     private static final Logger log = LoggerFactory.getLogger(GithubAppCheck.class);
@@ -75,20 +80,17 @@ public class GithubAppCheck {
      * @return True if github app is installed, false otherwise. 
      */
     protected boolean isGithubAppEnabledOnRepository(String fullRepoName) {
-        Integer maxRetryCount = 5;
-        Boolean isGithubAppInstalled = false;
-        if (!isGithubAppInstalled) {
-            for (Integer i = 0; i < maxRetryCount; i++) {
-                isGithubAppInstalled = isGithubAppEnabledOnRepositoryWithGitApi(fullRepoName);
-                if (isGithubAppInstalled) {
-                    return isGithubAppInstalled;
-                }
-            }
-        }
-        if (!isGithubAppInstalled) {
-            isGithubAppInstalled = isGithubAppEnabledOnRepositoryWithRenovateApi(fullRepoName);
-        }
-        return isGithubAppInstalled;
+        RetryConfig config = RetryConfig.custom()
+                .maxAttempts(1)
+                .waitDuration(Duration.ofMillis(2000))
+                .retryExceptions(IOException.class)
+                .build();
+        Retry retry = Retry.of("id", config);
+
+        Try<Boolean> retryResult = Try.ofSupplier(Retry.decorateSupplier(retry, () -> isGithubAppEnabledOnRepositoryWithRenovateApi(fullRepoName)))
+                .recover(throwable -> isGithubAppEnabledOnRepositoryWithGitApi(fullRepoName));
+
+        return retryResult.get();
     }
 
     /**
@@ -144,16 +146,17 @@ public class GithubAppCheck {
                 }
                 in.close();
 
+                log.info(response.toString());
                 if (response.toString().contains("installed")) {
                     return true;
                 } else {
                     return false;
                 }
             } else if (conn.getResponseCode() == HttpURLConnection.HTTP_NOT_FOUND) {
-                System.out.println("Repository not found");
+                log.warn("Repository not found");
                 return false;
             } else {
-                System.out.println("GET request failed with response code: " + conn.getResponseCode());
+                log.warn("GET request failed with response code: " + conn.getResponseCode());
                 return false;
             }
         } catch (Exception e) {
