@@ -26,7 +26,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.Scanner;
-import org.apache.http.HttpResponse;
+import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
@@ -109,10 +109,14 @@ public class GithubAppCheck {
             HttpGet httpGet = new HttpGet(apiEndpoint);
             httpGet.setHeader("Authorization", jwt);
             httpGet.setHeader("Accept", "application/vnd.github+json");
-            HttpResponse response = httpClient.execute(httpGet);
-            int statusCode = response.getStatusLine().getStatusCode();
-            log.warn("[isGithubAppEnabledOnRepositoryWithGitApi] -- Response code `{}` while trying to get app installation using Git API", statusCode);
-            return statusCode == 200;
+            CloseableHttpResponse response = httpClient.execute(httpGet);
+            try {
+                int statusCode = response.getStatusLine().getStatusCode();
+                log.warn("[isGithubAppEnabledOnRepositoryWithGitApi] -- Response code `{}` while trying to get app installation using Git API", statusCode);
+                return statusCode == 200;
+            } finally {
+                response.close();
+            }
         } catch (IOException exception) {
             log.warn("[isGithubAppEnabledOnRepositoryWithGitApi] -- Caught a IOException while trying to get app installation on repo {}. Defaulting to False", fullRepoName);
             exception.printStackTrace();
@@ -132,10 +136,14 @@ public class GithubAppCheck {
             HttpGet httpGet = new HttpGet(apiEndpoint);
             httpGet.setHeader("Authorization", appServerApiToken);
             httpGet.setHeader("Accept", "application/json");
-            HttpResponse response = httpClient.execute(httpGet);
-            int statusCode = response.getStatusLine().getStatusCode();
-            log.warn("[isGithubAppEnabledOnRepositoryWithRenovateApi] -- Response code `{}` while trying to get app installation by Renovate API", statusCode);
-            return statusCode == 200;
+            CloseableHttpResponse response = httpClient.execute(httpGet);
+            try {
+                int statusCode = response.getStatusLine().getStatusCode();
+                log.warn("[isGithubAppEnabledOnRepositoryWithRenovateApi] -- Response code `{}` while trying to get app installation by Renovate API", statusCode);
+                return statusCode == 200;
+            } finally {
+                response.close();
+            }
         } catch (IOException exception) {
             log.warn("[isGithubAppEnabledOnRepositoryWithRenovateApi] -- Caught a IOException while trying to get app installation on repo {}. Defaulting to False", fullRepoName);
             exception.printStackTrace();
