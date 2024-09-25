@@ -28,6 +28,10 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.Scanner;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
 
 import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryConfig;
@@ -82,7 +86,7 @@ public class GithubAppCheck {
     protected boolean isGithubAppEnabledOnRepository(String fullRepoName) {
         RetryConfig config = RetryConfig.custom()
                 .maxAttempts(1)
-                .waitDuration(Duration.ofMillis(2000))
+                .waitDuration(Duration.ofMillis(1000))
                 .retryExceptions(IOException.class)
                 .build();
         Retry retry = Retry.of("id", config);
@@ -101,18 +105,24 @@ public class GithubAppCheck {
      */
     protected boolean isGithubAppEnabledOnRepositoryWithGitApi(String fullRepoName) {
         refreshJwtIfNeeded(appId, privateKeyPath);
-        try {
-            gitHub.getApp().getInstallationByRepository(fullRepoName.split("/")[0], fullRepoName.split("/")[1]);
-            return true;
-        } catch (HttpException exception) {
-            if (exception.getResponseCode() != 404) {
-                // Log for any HTTP status code other than 404 Not found. 
-                log.warn("Caught a HTTPException `{}` while trying to get app installation. Defaulting to False. Status code: {}", exception.getMessage(), exception.getResponseCode());
+        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
+            String apiEndpoint = "https://git.soma.salesforce.com/api/v3/repos/" + fullRepoName + "/installation";
+            HttpGet httpGet = new HttpGet(apiEndpoint);
+            httpGet.setHeader("Authorization", jwt);
+            httpGet.setHeader("Accept", "application/vnd.github+json");
+
+            HttpResponse response = httpClient.execute(httpGet);
+            int statusCode = response.getStatusLine().getStatusCode();
+            if (statusCode == 200) {
+                return true;
+            } else if (statusCode == 404) {
+                return false;
+            } else {
+                log.warn("[isGithubAppEnabledOnRepositoryWithGitApi] -- Unexpected response code `{}` while trying to get app installation. Defaulting to False.", statusCode);
+                return false;
             }
-            return false;
         } catch (IOException exception) {
-            // Most often happens on timeout scenarios. 
-            log.warn("Caught a IOException {} while trying to get app installation. Defaulting to False", exception.getMessage());
+            log.warn("[isGithubAppEnabledOnRepositoryWithGitApi] -- Caught a IOException {} while trying to get app installation. Defaulting to False", exception.getMessage());
             return false;
         }
     }
@@ -124,43 +134,24 @@ public class GithubAppCheck {
      * Reference: https://github.com/mend/renovate-ce-ee/blob/main/docs/reporting-apis.md#repo-info
      */
     protected boolean isGithubAppEnabledOnRepositoryWithRenovateApi(String fullRepoName) {
-        try {
+        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
             String apiEndpoint = appServerApiEndpoint + "/api/repos/" + fullRepoName;
-            URL url = new URL(apiEndpoint);
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("GET");
-            conn.setRequestProperty("Accept", "application/json");
-            conn.setRequestProperty("Authorization", appServerApiToken);
-            conn.connect();
+            HttpGet httpGet = new HttpGet(apiEndpoint);
+            httpGet.setHeader("Authorization", appServerApiToken);
+            httpGet.setHeader("Accept", "application/json");
 
-            log.info("HTTPS Response Code: " + conn.getResponseCode());
-            log.info("HTTPS Response Message: " + conn.getResponseMessage());
-            
-            if (conn.getResponseCode() == HttpURLConnection.HTTP_OK) {
-                BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-                String inputLine;
-                StringBuilder response = new StringBuilder();
-
-                while ((inputLine = in.readLine()) != null) {
-                    response.append(inputLine);
-                }
-                in.close();
-
-                log.info(response.toString());
-                if (response.toString().contains("installed")) {
-                    return true;
-                } else {
-                    return false;
-                }
-            } else if (conn.getResponseCode() == HttpURLConnection.HTTP_NOT_FOUND) {
-                log.warn("Repository not found");
+            HttpResponse response = httpClient.execute(httpGet);
+            int statusCode = response.getStatusLine().getStatusCode();
+            if (statusCode == 200) {
+                return true;
+            } else if (statusCode == 404) {
                 return false;
             } else {
-                log.warn("GET request failed with response code: " + conn.getResponseCode());
+                log.warn("[isGithubAppEnabledOnRepositoryWithRenovateApi] -- Unexpected response code `{}` while trying to get app installation. Defaulting to False.", statusCode);
                 return false;
             }
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (IOException exception) {
+            log.warn("[isGithubAppEnabledOnRepositoryWithRenovateApi] -- Caught a IOException {} while trying to get app installation. Defaulting to False", exception.getMessage());
             return false;
         }
     }
