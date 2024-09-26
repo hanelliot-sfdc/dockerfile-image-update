@@ -91,8 +91,20 @@ public class GithubAppCheck {
         Retry retry = Retry.of("id", config);
 
         Try<Boolean> retryResult = Try.ofSupplier(Retry.decorateSupplier(retry, () -> isGithubAppEnabledOnRepositoryWithRenovateApi(fullRepoName)))
-                .recover(throwable -> isGithubAppEnabledOnRepositoryWithGitApi(fullRepoName));
+                .recover(throwable -> isGithubAppEnabledOnRepositoryWithGitApiRetry(fullRepoName));
 
+        return retryResult.get();
+    }
+
+    protected boolean isGithubAppEnabledOnRepositoryWithGitApiRetry(String fullRepoName) {
+        RetryConfig config = RetryConfig.custom()
+                .maxAttempts(1)
+                .waitDuration(Duration.ofMillis(1000))
+                .retryExceptions(IOException.class)
+                .build();
+        Retry retry = Retry.of("id", config);
+
+        Try<Boolean> retryResult = Try.ofSupplier(Retry.decorateSupplier(retry, () -> isGithubAppEnabledOnRepositoryWithGitApi(fullRepoName)));
         return retryResult.get();
     }
 
@@ -109,13 +121,10 @@ public class GithubAppCheck {
             HttpGet httpGet = new HttpGet(apiEndpoint);
             httpGet.setHeader("Authorization", jwt);
             httpGet.setHeader("Accept", "application/vnd.github+json");
-            CloseableHttpResponse response = httpClient.execute(httpGet);
-            try {
+            try (CloseableHttpResponse response = httpClient.execute(httpGet)) {
                 int statusCode = response.getStatusLine().getStatusCode();
                 log.warn("[isGithubAppEnabledOnRepositoryWithGitApi] -- Response code `{}` while trying to get app installation using Git API", statusCode);
                 return statusCode == 200;
-            } finally {
-                response.close();
             }
         } catch (IOException exception) {
             log.warn("[isGithubAppEnabledOnRepositoryWithGitApi] -- Caught a IOException while trying to get app installation on repo {}. Defaulting to False", fullRepoName);
@@ -130,19 +139,21 @@ public class GithubAppCheck {
      * @return True if github app is installed, false otherwise. 
      * Reference: https://github.com/mend/renovate-ce-ee/blob/main/docs/reporting-apis.md#repo-info
      */
+
     protected boolean isGithubAppEnabledOnRepositoryWithRenovateApi(String fullRepoName) {
+        return isGithubAppEnabledOnRepositoryWithRenovateApi(fullRepoName, httpClient);
+    }
+
+    protected boolean isGithubAppEnabledOnRepositoryWithRenovateApi(String fullRepoName, CloseableHttpClient httpClient) {
         try {
             String apiEndpoint = appServerApiEndpoint + "/api/repos/" + fullRepoName;
             HttpGet httpGet = new HttpGet(apiEndpoint);
             httpGet.setHeader("Authorization", appServerApiToken);
             httpGet.setHeader("Accept", "application/json");
-            CloseableHttpResponse response = httpClient.execute(httpGet);
-            try {
+            try (CloseableHttpResponse response = httpClient.execute(httpGet)) {
                 int statusCode = response.getStatusLine().getStatusCode();
                 log.warn("[isGithubAppEnabledOnRepositoryWithRenovateApi] -- Response code `{}` while trying to get app installation by Renovate API", statusCode);
                 return statusCode == 200;
-            } finally {
-                response.close();
             }
         } catch (IOException exception) {
             log.warn("[isGithubAppEnabledOnRepositoryWithRenovateApi] -- Caught a IOException while trying to get app installation on repo {}. Defaulting to False", fullRepoName);

@@ -14,8 +14,22 @@ import java.io.*;
 import java.util.*;
 
 import static org.mockito.Mockito.*;
-import static org.testng.Assert.assertThrows;
+import org.mockito.InjectMocks;
+import static org.testng.Assert.*;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.net.URLConnection;
+import java.util.Scanner;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.StatusLine;
+
+@ExtendWith(MockitoExtension.class)
 public class PullRequestsTest {
    @Test
    public void testPullRequestsPrepareToCreateSuccessful() throws Exception {
@@ -149,6 +163,27 @@ public class PullRequestsTest {
                 eq(pathToDockerfilesInParentRepo),
                 eq(gitHubContentToProcess), anyList(), eq(gitForkBranch),
                 eq(rateLimiter));
+    }
+
+    @InjectMocks
+    GithubAppCheck githubAppCheck;
+    
+    @Test
+    public void testIsGithubAppEnabledOnRepositoryWithRenovateApi_Success() throws IOException {
+        String fullRepoName = "org/repo";
+        CloseableHttpClient httpClient = mock(CloseableHttpClient.class);
+        CloseableHttpResponse closeableHttpResponse = mock(CloseableHttpResponse.class);
+        // GithubAppCheck githubAppCheck = mock(GithubAppCheck.class);
+        StatusLine statusline = mock(StatusLine.class);
+        HttpGet httpGet = mock(HttpGet.class);
+
+        when(httpClient.execute(any())).thenReturn(closeableHttpResponse);
+        when(closeableHttpResponse.getStatusLine()).thenReturn(statusline);
+        when(statusline.getStatusCode()).thenReturn(200);
+
+        boolean result = githubAppCheck.isGithubAppEnabledOnRepositoryWithRenovateApi(fullRepoName, httpClient);
+        
+        verify(httpClient).execute(any());
     }
 
     @Test
