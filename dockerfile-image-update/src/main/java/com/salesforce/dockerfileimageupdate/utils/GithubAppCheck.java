@@ -83,6 +83,17 @@ public class GithubAppCheck {
      * @return True if github app is installed, false otherwise. 
      */
     protected boolean isGithubAppEnabledOnRepository(String fullRepoName) {
+        boolean result = isGithubAppEnabledOnRepositoryWithRenovateApi_Retry(fullRepoName);
+        
+        if (!result) {
+            result = isGithubAppEnabledOnRepositoryWithGitApi_Retry(fullRepoName);
+        }
+        
+        return result;
+    }
+
+
+    protected boolean isGithubAppEnabledOnRepositoryWithRenovateApi_Retry(String fullRepoName) {
         RetryConfig config = RetryConfig.custom()
                 .maxAttempts(1)
                 .waitDuration(Duration.ofMillis(1000))
@@ -90,13 +101,13 @@ public class GithubAppCheck {
                 .build();
         Retry retry = Retry.of("id", config);
 
-        Try<Boolean> retryResult = Try.ofSupplier(Retry.decorateSupplier(retry, () -> isGithubAppEnabledOnRepositoryWithRenovateApi(fullRepoName)))
-                .recover(throwable -> isGithubAppEnabledOnRepositoryWithGitApiRetry(fullRepoName));
-
+        Try<Boolean> retryResult = Try.ofSupplier(Retry.decorateSupplier(retry, () -> isGithubAppEnabledOnRepositoryWithRenovateApi(fullRepoName)));
+        
         return retryResult.get();
     }
 
-    protected boolean isGithubAppEnabledOnRepositoryWithGitApiRetry(String fullRepoName) {
+
+    protected boolean isGithubAppEnabledOnRepositoryWithGitApi_Retry(String fullRepoName) {
         RetryConfig config = RetryConfig.custom()
                 .maxAttempts(1)
                 .waitDuration(Duration.ofMillis(1000))
@@ -105,8 +116,10 @@ public class GithubAppCheck {
         Retry retry = Retry.of("id", config);
 
         Try<Boolean> retryResult = Try.ofSupplier(Retry.decorateSupplier(retry, () -> isGithubAppEnabledOnRepositoryWithGitApi(fullRepoName)));
+        
         return retryResult.get();
     }
+
 
     /**
      * Method to verify whether the github app is installed on a repository or not, using Git API
@@ -114,7 +127,12 @@ public class GithubAppCheck {
      * @return True if github app is installed, false otherwise. 
      * Reference: https://docs.github.com/en/rest/apps/apps?apiVersion=2022-11-28#get-a-repository-installation-for-the-authenticated-app
      */
+
     protected boolean isGithubAppEnabledOnRepositoryWithGitApi(String fullRepoName) {
+        return isGithubAppEnabledOnRepositoryWithGitApi(fullRepoName, httpClient);
+    }
+
+    protected boolean isGithubAppEnabledOnRepositoryWithGitApi(String fullRepoName, CloseableHttpClient httpClient) {
         refreshJwtIfNeeded(appId, privateKeyPath);
         try {
             String apiEndpoint = "https://git.soma.salesforce.com/api/v3/repos/" + fullRepoName + "/installation";
@@ -168,7 +186,7 @@ public class GithubAppCheck {
      * @param appId = The id of the Github App to generate the JWT for
      * @param privateKeyPath = The path to the private key of the Github App to generate the JWT for
      */
-    private void refreshJwtIfNeeded(String appId, String privateKeyPath) {
+    protected void refreshJwtIfNeeded(String appId, String privateKeyPath) {
         if (jwt == null || jwtExpiry.isBefore(Instant.now().minusSeconds(60))) {  // Adding a buffer to ensure token validity
             try {
                 generateJWT(appId, privateKeyPath);
