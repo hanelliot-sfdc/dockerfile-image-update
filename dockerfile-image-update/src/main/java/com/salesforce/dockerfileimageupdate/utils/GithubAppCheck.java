@@ -36,6 +36,8 @@ import io.github.resilience4j.retry.RetryConfig;
 import io.vavr.control.Try;
 import java.time.Duration;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
+
 
 public class GithubAppCheck {
     private static final Logger log = LoggerFactory.getLogger(GithubAppCheck.class);
@@ -129,11 +131,13 @@ public class GithubAppCheck {
             try (CloseableHttpResponse response = httpClient.execute(httpGet)) {
                 int statusCode = response.getStatusLine().getStatusCode();
                 log.warn("[isGithubAppEnabledOnRepositoryWithGitApi] -- Response code `{}` while trying to get app installation using Git API", statusCode);
+                if (statusCode >= 500) {
+                    throw new IOException();
+                }
                 return statusCode == 200;
             }
-        } catch (IOException exception) {
-            log.warn("[isGithubAppEnabledOnRepositoryWithGitApi] -- Caught a IOException while trying to get app installation on repo {}. Defaulting to False", fullRepoName);
-            exception.printStackTrace();
+        } catch (Exception e) {
+            log.warn("[isGithubAppEnabledOnRepositoryWithGitApi] -- Caught a IOException while trying to get app installation on repo {}. Exception: {} Defaulting to False", fullRepoName, ExceptionUtils.getStackTrace(e));
             return false;
         }
     }
@@ -160,9 +164,8 @@ public class GithubAppCheck {
                 log.warn("[isGithubAppEnabledOnRepositoryWithRenovateApi] -- Response code `{}` while trying to get app installation by Renovate API", statusCode);
                 return statusCode == 200;
             }
-        } catch (IOException exception) {
-            log.warn("[isGithubAppEnabledOnRepositoryWithRenovateApi] -- Caught a IOException while trying to get app installation on repo {}. Defaulting to False", fullRepoName);
-            exception.printStackTrace();
+        } catch (Exception e) {
+            log.warn("[isGithubAppEnabledOnRepositoryWithRenovateApi] -- Caught a IOException while trying to get app installation on repo {}. Exception: {}. Defaulting to False", fullRepoName, ExceptionUtils.getStackTrace(e));
             return false;
         }
     }
