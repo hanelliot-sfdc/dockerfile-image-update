@@ -162,6 +162,9 @@ public class GithubAppCheck {
             try (CloseableHttpResponse response = httpClient.execute(httpGet)) {
                 int statusCode = response.getStatusLine().getStatusCode();
                 log.warn("[isGithubAppEnabledOnRepositoryWithRenovateApi] -- Response code `{}` while trying to get app installation by Renovate API", statusCode);
+                if (statusCode >= 500) {
+                    throw new IOException();
+                }
                 return statusCode == 200;
             }
         } catch (Exception e) {
