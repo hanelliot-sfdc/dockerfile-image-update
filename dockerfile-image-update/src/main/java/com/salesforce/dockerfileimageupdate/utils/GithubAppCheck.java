@@ -83,40 +83,27 @@ public class GithubAppCheck {
      * @return True if github app is installed, false otherwise. 
      */
     protected boolean isGithubAppEnabledOnRepository(String fullRepoName) {
-        boolean result = isGithubAppEnabledOnRepositoryWithRenovateApi_Retry(fullRepoName);
-        
-        if (!result) {
-            result = isGithubAppEnabledOnRepositoryWithGitApi_Retry(fullRepoName);
+        boolean isRenovateApiUsed = true;
+        return isGithubAppEnabledOnRepository_Retry(fullRepoName, isRenovateApiUsed);
+    }
+
+
+    protected boolean isGithubAppEnabledOnRepository_Retry(String fullRepoName, Boolean isRenovateApiUsed) {
+        RetryConfig config = RetryConfig.custom()
+                .maxAttempts(1)
+                .waitDuration(Duration.ofMillis(1000))
+                .retryExceptions(IOException.class)
+                .build();
+        Retry retry = Retry.of("id", config);
+
+        Try<Boolean> retryResult;
+
+        if (isRenovateApiUsed) {
+            retryResult = Try.ofSupplier(Retry.decorateSupplier(retry, () -> isGithubAppEnabledOnRepositoryWithRenovateApi(fullRepoName)));
+        } else {
+            retryResult = Try.ofSupplier(Retry.decorateSupplier(retry, () -> isGithubAppEnabledOnRepositoryWithGitApi(fullRepoName)));
         }
-        
-        return result;
-    }
 
-
-    protected boolean isGithubAppEnabledOnRepositoryWithRenovateApi_Retry(String fullRepoName) {
-        RetryConfig config = RetryConfig.custom()
-                .maxAttempts(1)
-                .waitDuration(Duration.ofMillis(1000))
-                .retryExceptions(IOException.class)
-                .build();
-        Retry retry = Retry.of("id", config);
-
-        Try<Boolean> retryResult = Try.ofSupplier(Retry.decorateSupplier(retry, () -> isGithubAppEnabledOnRepositoryWithRenovateApi(fullRepoName)));
-        
-        return retryResult.get();
-    }
-
-
-    protected boolean isGithubAppEnabledOnRepositoryWithGitApi_Retry(String fullRepoName) {
-        RetryConfig config = RetryConfig.custom()
-                .maxAttempts(1)
-                .waitDuration(Duration.ofMillis(1000))
-                .retryExceptions(IOException.class)
-                .build();
-        Retry retry = Retry.of("id", config);
-
-        Try<Boolean> retryResult = Try.ofSupplier(Retry.decorateSupplier(retry, () -> isGithubAppEnabledOnRepositoryWithGitApi(fullRepoName)));
-        
         return retryResult.get();
     }
 

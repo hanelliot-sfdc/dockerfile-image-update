@@ -250,8 +250,9 @@ public class PullRequestsTest {
     public void testIsGithubAppEnabledOnRepository_RenovateAPI() throws IOException {
         String fullRepoName = "org/repo";
         GithubAppCheck githubAppCheck = spy(new GithubAppCheck(mock(Namespace.class)));
+        Boolean isRenovateApiUsed = true;
 
-        boolean result = githubAppCheck.isGithubAppEnabledOnRepositoryWithRenovateApi_Retry(fullRepoName);
+        boolean result = githubAppCheck.isGithubAppEnabledOnRepository_Retry(fullRepoName, isRenovateApiUsed);
 
         verify(githubAppCheck, times(1)).isGithubAppEnabledOnRepositoryWithRenovateApi(fullRepoName);
     }
@@ -260,9 +261,10 @@ public class PullRequestsTest {
     public void testIsGithubAppEnabledOnRepository_GitAPI() throws IOException {
         String fullRepoName = "org/repo";
         GithubAppCheck githubAppCheck = spy(new GithubAppCheck(mock(Namespace.class)));
+        Boolean isRenovateApiUsed = false;
 
         doNothing().when(githubAppCheck).refreshJwtIfNeeded(any(), any());
-        boolean result = githubAppCheck.isGithubAppEnabledOnRepositoryWithGitApi_Retry(fullRepoName);
+        boolean result = githubAppCheck.isGithubAppEnabledOnRepository_Retry(fullRepoName, isRenovateApiUsed);
 
         verify(githubAppCheck, times(1)).isGithubAppEnabledOnRepositoryWithGitApi(fullRepoName);
     }
@@ -271,9 +273,10 @@ public class PullRequestsTest {
     public void testIsGithubAppEnabledOnRepository_RenovateAPI_Retry() throws IOException {
         String fullRepoName = "org/repo";
         GithubAppCheck githubAppCheck = spy(new GithubAppCheck(mock(Namespace.class)));
+        Boolean isRenovateApiUsed = true;
 
         when(githubAppCheck.isGithubAppEnabledOnRepositoryWithRenovateApi(fullRepoName)).thenReturn(false);
-        boolean result = githubAppCheck.isGithubAppEnabledOnRepositoryWithRenovateApi_Retry(fullRepoName);
+        boolean result = githubAppCheck.isGithubAppEnabledOnRepository_Retry(fullRepoName, isRenovateApiUsed);
         
         verify(githubAppCheck, times(2)).isGithubAppEnabledOnRepositoryWithRenovateApi(fullRepoName);
     }
@@ -282,10 +285,11 @@ public class PullRequestsTest {
     public void testIsGithubAppEnabledOnRepository_GitAPI_Retry() throws IOException {
         String fullRepoName = "org/repo";
         GithubAppCheck githubAppCheck = spy(new GithubAppCheck(mock(Namespace.class)));
+        Boolean isRenovateApiUsed = false;
 
         doNothing().when(githubAppCheck).refreshJwtIfNeeded(any(), any());
         when(githubAppCheck.isGithubAppEnabledOnRepositoryWithGitApi(fullRepoName)).thenReturn(false);
-        boolean result = githubAppCheck.isGithubAppEnabledOnRepositoryWithGitApi_Retry(fullRepoName);
+        boolean result = githubAppCheck.isGithubAppEnabledOnRepository_Retry(fullRepoName, false);
         
         verify(githubAppCheck, times(2)).isGithubAppEnabledOnRepositoryWithGitApi(fullRepoName);
     }
