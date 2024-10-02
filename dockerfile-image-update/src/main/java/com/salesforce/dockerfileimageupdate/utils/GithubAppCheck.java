@@ -99,7 +99,7 @@ public class GithubAppCheck {
         RetryConfig config = RetryConfig.custom()
                 .maxAttempts(2) // The maximum number of attempts (including the initial call as the first attempt); Source: https://resilience4j.readme.io/docs/retry
                 .waitDuration(Duration.ofMillis(1000))
-                .retryExceptions(TimeoutException.class, CustomException.class, UncheckedIOException.class)
+                .retryExceptions(TimeoutException.class, UncheckedIOException.class)
                 .build();
         Retry retry = Retry.of("id", config);
 
@@ -128,7 +128,7 @@ public class GithubAppCheck {
             int statusCode = response.getStatusLine().getStatusCode();
             log.warn("[isGithubAppEnabledOnRepositoryWithGitApi] -- Response code `{}` while trying to get app installation using Git API", statusCode);
             if (statusCode >= 500) {
-                throw new CustomException();
+                throw new UncheckedIOException(new IOException());
             }
             return statusCode == 200;
         } catch (IOException exception) {
@@ -157,7 +157,7 @@ public class GithubAppCheck {
             int statusCode = response.getStatusLine().getStatusCode();
             log.warn("[isGithubAppEnabledOnRepositoryWithRenovateApi] -- Response code `{}` while trying to get app installation by Renovate API", statusCode);
             if (statusCode >= 500) {
-                throw new CustomException();
+                throw new UncheckedIOException(new IOException());
             }
             return statusCode == 200;
         } catch (IOException exception) {
@@ -216,9 +216,5 @@ public class GithubAppCheck {
             KeyFactory keyFactory = KeyFactory.getInstance("RSA");
             return (RSAPrivateKey) keyFactory.generatePrivate(spec);
         }
-    }
-
-    public static class CustomException extends RuntimeException {
-
     }
 }
