@@ -93,15 +93,6 @@ public class GithubAppCheck {
         } catch (MaxRetriesExceeded | UncheckedIOException exception) {
             return isGithubAppEnabledOnRepository_Retry(fullRepoName, () -> isGithubAppEnabledOnRepositoryWithGitApi(fullRepoName));
         }
-
-        // // The reason for this change:  isGithubAppEnabledOnRepository_Retry will always return either true or false as part of Supplier<Boolean>, even if max retries exceeded
-        // boolean result = isGithubAppEnabledOnRepository_Retry(fullRepoName, () -> isGithubAppEnabledOnRepositoryWithRenovateApi(fullRepoName));
-        
-        // if (!result) {
-        //     result = isGithubAppEnabledOnRepository_Retry(fullRepoName, () -> isGithubAppEnabledOnRepositoryWithGitApi(fullRepoName));
-        // }
-        
-        // return result;
     }
 
     protected boolean isGithubAppEnabledOnRepository_Retry(String fullRepoName, Supplier<Boolean> supplier) {
