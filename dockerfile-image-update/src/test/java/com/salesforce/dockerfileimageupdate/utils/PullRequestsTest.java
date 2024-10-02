@@ -29,7 +29,11 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.StatusLine;
 
-import io.vavr.control.Try;
+import io.github.resilience4j.retry.Retry;
+import io.github.resilience4j.retry.RetryConfig;
+import io.github.resilience4j.retry.MaxRetriesExceeded;
+import java.time.Duration;
+import java.util.function.Supplier;
 
 
 @ExtendWith(MockitoExtension.class)
@@ -207,6 +211,23 @@ public class PullRequestsTest {
     }
 
     @Test
+    public void testIsGithubAppEnabledOnRepositoryWithRenovateApi_Throw() throws IOException {
+        String fullRepoName = "org/repo";
+        CloseableHttpClient httpClient = mock(CloseableHttpClient.class);
+        CloseableHttpResponse closeableHttpResponse = mock(CloseableHttpResponse.class);
+        GithubAppCheck githubAppCheck = spy(new GithubAppCheck(mock(Namespace.class)));
+        StatusLine statusline = mock(StatusLine.class);
+        HttpGet httpGet = mock(HttpGet.class);
+        GithubAppCheck.CustomException customException = mock(GithubAppCheck.CustomException.class);
+
+        when(httpClient.execute(any(HttpGet.class))).thenReturn(closeableHttpResponse);
+        when(closeableHttpResponse.getStatusLine()).thenReturn(statusline);
+        when(statusline.getStatusCode()).thenReturn(500);
+
+        assertThrows(GithubAppCheck.CustomException.class, () -> githubAppCheck.isGithubAppEnabledOnRepositoryWithRenovateApi(fullRepoName, httpClient));
+    }
+
+    @Test
     public void testIsGithubAppEnabledOnRepositoryWithGitApi_Success() throws IOException {
         String fullRepoName = "org/repo";
         CloseableHttpClient httpClient = mock(CloseableHttpClient.class);
@@ -247,51 +268,60 @@ public class PullRequestsTest {
     }
 
     @Test
-    public void testIsGithubAppEnabledOnRepository_RenovateAPI() throws IOException {
+    public void testIsGithubAppEnabledOnRepositoryWithGitApi_Throw() throws IOException {
         String fullRepoName = "org/repo";
+        CloseableHttpClient httpClient = mock(CloseableHttpClient.class);
+        CloseableHttpResponse closeableHttpResponse = mock(CloseableHttpResponse.class);
         GithubAppCheck githubAppCheck = spy(new GithubAppCheck(mock(Namespace.class)));
-        Boolean isRenovateApiUsed = true;
-
-        boolean result = githubAppCheck.isGithubAppEnabledOnRepository_Retry(fullRepoName, isRenovateApiUsed);
-
-        verify(githubAppCheck, times(1)).isGithubAppEnabledOnRepositoryWithRenovateApi(fullRepoName);
-    }
-
-    @Test
-    public void testIsGithubAppEnabledOnRepository_GitAPI() throws IOException {
-        String fullRepoName = "org/repo";
-        GithubAppCheck githubAppCheck = spy(new GithubAppCheck(mock(Namespace.class)));
-        Boolean isRenovateApiUsed = false;
+        StatusLine statusline = mock(StatusLine.class);
+        HttpGet httpGet = mock(HttpGet.class);
+        GithubAppCheck.CustomException customException = mock(GithubAppCheck.CustomException.class);
 
         doNothing().when(githubAppCheck).refreshJwtIfNeeded(any(), any());
-        boolean result = githubAppCheck.isGithubAppEnabledOnRepository_Retry(fullRepoName, isRenovateApiUsed);
+        when(httpClient.execute(any(HttpGet.class))).thenReturn(closeableHttpResponse);
+        when(closeableHttpResponse.getStatusLine()).thenReturn(statusline);
+        when(statusline.getStatusCode()).thenReturn(500);
 
-        verify(githubAppCheck, times(1)).isGithubAppEnabledOnRepositoryWithGitApi(fullRepoName);
+        assertThrows(GithubAppCheck.CustomException.class, () -> githubAppCheck.isGithubAppEnabledOnRepositoryWithGitApi(fullRepoName, httpClient));
     }
 
     @Test
-    public void testIsGithubAppEnabledOnRepository_RenovateAPI_Retry() throws IOException {
+    public void testIsGithubAppEnabledOnRepository_RenovateRetry() throws IOException {
         String fullRepoName = "org/repo";
+        CloseableHttpClient httpClient = mock(CloseableHttpClient.class);
+        CloseableHttpResponse closeableHttpResponse = mock(CloseableHttpResponse.class);
         GithubAppCheck githubAppCheck = spy(new GithubAppCheck(mock(Namespace.class)));
-        Boolean isRenovateApiUsed = true;
+        StatusLine statusline = mock(StatusLine.class);
+        HttpGet httpGet = mock(HttpGet.class);
+        Supplier supplier = mock(Supplier.class);
 
-        when(githubAppCheck.isGithubAppEnabledOnRepositoryWithRenovateApi(fullRepoName)).thenReturn(false);
-        boolean result = githubAppCheck.isGithubAppEnabledOnRepository_Retry(fullRepoName, isRenovateApiUsed);
-        
+        when(httpClient.execute(any(HttpGet.class))).thenReturn(closeableHttpResponse);
+        when(closeableHttpResponse.getStatusLine()).thenReturn(statusline);
+        when(statusline.getStatusCode()).thenReturn(500);
+        doThrow(new GithubAppCheck.CustomException()).when(githubAppCheck).isGithubAppEnabledOnRepositoryWithRenovateApi(fullRepoName);
+
+        assertThrows(GithubAppCheck.CustomException.class, () -> githubAppCheck.isGithubAppEnabledOnRepository(fullRepoName));
         verify(githubAppCheck, times(2)).isGithubAppEnabledOnRepositoryWithRenovateApi(fullRepoName);
     }
 
     @Test
-    public void testIsGithubAppEnabledOnRepository_GitAPI_Retry() throws IOException {
+    public void testIsGithubAppEnabledOnRepository_GitRetry() throws IOException {
         String fullRepoName = "org/repo";
+        CloseableHttpClient httpClient = mock(CloseableHttpClient.class);
+        CloseableHttpResponse closeableHttpResponse = mock(CloseableHttpResponse.class);
         GithubAppCheck githubAppCheck = spy(new GithubAppCheck(mock(Namespace.class)));
-        Boolean isRenovateApiUsed = false;
+        StatusLine statusline = mock(StatusLine.class);
+        HttpGet httpGet = mock(HttpGet.class);
+        Supplier supplier = mock(Supplier.class);
 
         doNothing().when(githubAppCheck).refreshJwtIfNeeded(any(), any());
-        when(githubAppCheck.isGithubAppEnabledOnRepositoryWithGitApi(fullRepoName)).thenReturn(false);
-        boolean result = githubAppCheck.isGithubAppEnabledOnRepository_Retry(fullRepoName, false);
-        
-        verify(githubAppCheck, times(2)).isGithubAppEnabledOnRepositoryWithGitApi(fullRepoName);
+        when(httpClient.execute(any(HttpGet.class))).thenReturn(closeableHttpResponse);
+        when(closeableHttpResponse.getStatusLine()).thenReturn(statusline);
+        when(statusline.getStatusCode()).thenReturn(500);
+        doThrow(new GithubAppCheck.CustomException()).when(githubAppCheck).isGithubAppEnabledOnRepositoryWithGitApi(fullRepoName);
+
+        assertThrows(GithubAppCheck.CustomException.class, () -> githubAppCheck.isGithubAppEnabledOnRepository(fullRepoName));
+        verify(githubAppCheck, times(2)).isGithubAppEnabledOnRepositoryWithGitApi(fullRepoName); 
     }
 
     @Test
