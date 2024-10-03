@@ -89,13 +89,13 @@ public class GithubAppCheck {
      */
     protected boolean isGithubAppEnabledOnRepository(String fullRepoName) {
         try {
-            return isGithubAppEnabledOnRepository_Retry(fullRepoName, () -> isGithubAppEnabledOnRepositoryWithRenovateApi(fullRepoName));  
+            return isGithubAppEnabledOnRepositoryWithRetry(fullRepoName, () -> isGithubAppEnabledOnRepositoryWithRenovateApi(fullRepoName));  
         } catch (MaxRetriesExceeded | UncheckedIOException exception) {
-            return isGithubAppEnabledOnRepository_Retry(fullRepoName, () -> isGithubAppEnabledOnRepositoryWithGitApi(fullRepoName));
+            return isGithubAppEnabledOnRepositoryWithRetry(fullRepoName, () -> isGithubAppEnabledOnRepositoryWithGitApi(fullRepoName));
         }
     }
 
-    protected boolean isGithubAppEnabledOnRepository_Retry(String fullRepoName, Supplier<Boolean> supplier) {
+    protected boolean isGithubAppEnabledOnRepositoryWithRetry(String fullRepoName, Supplier<Boolean> supplier) {
         RetryConfig config = RetryConfig.custom()
                 .maxAttempts(2) // The maximum number of attempts (including the initial call as the first attempt); Source: https://resilience4j.readme.io/docs/retry
                 .waitDuration(Duration.ofMillis(1000))

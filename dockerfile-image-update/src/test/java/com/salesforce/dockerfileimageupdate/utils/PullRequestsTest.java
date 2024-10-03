@@ -285,7 +285,7 @@ public class PullRequestsTest {
     }
 
     @Test
-    public void testIsGithubAppEnabledOnRepository_Retry() throws IOException {
+    public void testIsGithubAppEnabledOnRepositoryWithRetry() throws IOException {
         String fullRepoName = "org/repo";
         CloseableHttpClient httpClient = mock(CloseableHttpClient.class);
         CloseableHttpResponse closeableHttpResponse = mock(CloseableHttpResponse.class);
@@ -300,7 +300,7 @@ public class PullRequestsTest {
         when(statusline.getStatusCode()).thenReturn(500);
         doThrow(new UncheckedIOException(new IOException())).when(githubAppCheck).isGithubAppEnabledOnRepositoryWithRenovateApi(fullRepoName);
         doThrow(new UncheckedIOException(new IOException())).when(githubAppCheck).isGithubAppEnabledOnRepositoryWithGitApi(fullRepoName);
-        doThrow(new MaxRetriesExceeded("test")).when(githubAppCheck).isGithubAppEnabledOnRepository_Retry(fullRepoName, supplier);
+        doThrow(new MaxRetriesExceeded("test")).when(githubAppCheck).isGithubAppEnabledOnRepositoryWithRetry(fullRepoName, supplier);
 
         assertThrows(UncheckedIOException.class, () -> githubAppCheck.isGithubAppEnabledOnRepository(fullRepoName));
         verify(githubAppCheck, times(2)).isGithubAppEnabledOnRepositoryWithRenovateApi(fullRepoName); 
